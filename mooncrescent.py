@@ -91,14 +91,18 @@ class MoonrakerTUI:
             while self.running:
                 current_time = time.time()
                 
-                # Handle keyboard input
-                self._handle_input()
+                # Handle keyboard input (returns True if UI needs immediate update)
+                input_changed = self._handle_input()
                 
                 # Process messages from WebSocket
                 self._process_messages()
                 
-                # Periodic UI update
-                if current_time - last_update >= UPDATE_INTERVAL:
+                # Update UI immediately after user input
+                if input_changed:
+                    self._update_ui()
+                    last_update = current_time  # Reset timer
+                # Or periodic UI update for status changes
+                elif current_time - last_update >= UPDATE_INTERVAL:
                     self._update_ui()
                     last_update = current_time
                     
@@ -111,22 +115,22 @@ class MoonrakerTUI:
             self._cleanup()
             
     def _handle_input(self):
-        """Handle keyboard input"""
+        """Handle keyboard input, returns True if UI needs immediate update"""
         try:
             key = self.stdscr.getch()
             
             if key == -1:  # No input
-                return
+                return False
                 
             # Quit shortcuts (ESC or CTRL-D)
             if key == 27 or key == 4:  # ESC or CTRL-D
                 self.running = False
-                return
+                return False
                 
             # Help shortcut
             elif key == ord('?'):
                 self._show_help()
-                return
+                return True  # Help added text to terminal, needs update
                 
             # Command input handling
             if key == ord('\n') or key == curses.KEY_ENTER or key == 10:
@@ -134,42 +138,56 @@ class MoonrakerTUI:
                 command = self.cmd_handler.submit_command()
                 if command:
                     self._send_command(command)
+                return True  # Command line cleared, needs update
                     
             elif key == ord('\t'):  # Tab - auto-complete
                 self._handle_tab_complete()
+                return True  # Completion may have changed text
                 
             elif key == curses.KEY_BACKSPACE or key == 127 or key == 8:
                 self.cmd_handler.delete_char()
+                return True  # Text changed
                 
             elif key == curses.KEY_DC:  # Delete key
                 self.cmd_handler.delete_char_forward()
+                return True  # Text changed
                 
             elif key == curses.KEY_LEFT:
                 self.cmd_handler.move_cursor(-1)
+                return True  # Cursor moved
                 
             elif key == curses.KEY_RIGHT:
                 self.cmd_handler.move_cursor(1)
+                return True  # Cursor moved
                 
             elif key == curses.KEY_HOME:
                 self.cmd_handler.move_cursor_home()
+                return True  # Cursor moved
                 
             elif key == curses.KEY_END:
                 self.cmd_handler.move_cursor_end()
+                return True  # Cursor moved
                 
             elif key == curses.KEY_UP:
                 self.cmd_handler.history_up()
+                return True  # Text changed (history navigation)
                 
             elif key == curses.KEY_DOWN:
                 self.cmd_handler.history_down()
+                return True  # Text changed (history navigation)
                 
             elif key == curses.KEY_RESIZE:
                 self.ui.resize()
+                return True  # Screen resized
                 
             elif 32 <= key <= 126:  # Printable characters
                 self.cmd_handler.add_char(chr(key))
+                return True  # Text changed
+            
+            return False  # Unknown key, no update needed
                     
         except curses.error:
-            pass
+            return False
             
     def _send_command(self, command: str):
         """Send G-code command to printer"""
