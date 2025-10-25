@@ -75,10 +75,14 @@ python mooncrescent.py --host mainsailos.local
 Edit `config.py` to change default settings:
 
 ```python
-PRINTER_HOST = "192.168.1.100"  # Default printer IP
+PRINTER_HOST = "127.0.0.1"       # Default printer IP
 PRINTER_PORT = 7125              # Default Moonraker port
 TERMINAL_HISTORY_SIZE = 1000     # Max terminal lines
 UPDATE_INTERVAL = 0.1            # UI refresh rate (seconds)
+
+# Terminal filtering
+FILTER_GCODE_COMMENTS = True     # Filter "// ..." messages (Orca Slicer spam)
+FILTER_OK_RESPONSES = False      # Filter standalone "ok" messages
 ```
 
 ## Troubleshooting

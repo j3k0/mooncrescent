@@ -21,3 +21,7 @@ INPUT_HEIGHT = 3
 # History file
 HISTORY_FILE = "~/.mooncrescent_history"
 
+# Terminal filtering
+FILTER_GCODE_COMMENTS = True  # Filter out "// ..." informational messages
+FILTER_OK_RESPONSES = False   # Filter out standalone "ok" responses
+
