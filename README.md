@@ -20,7 +20,7 @@ Terminal interface for monitoring and controlling Moonraker/Klipper 3D printers.
 
 1. Clone or download this repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/j3k0/mooncrescent.git
 cd mooncrescent
 ```
 
@@ -34,12 +34,12 @@ pip install -r requirements.txt
 ### Basic Usage
 
 ```bash
-python main.py --host 192.168.1.100 --port 7125
+python main.py
 ```
 
 ### Command-line Options
 
-- `--host`: Moonraker host address (default: 192.168.1.100)
+- `--host`: Moonraker host address (default: 127.0.0.1)
 - `--port`: Moonraker port (default: 7125)
 
 ### Examples
@@ -69,47 +69,6 @@ python mooncrescent.py --host mainsailos.local
 ### Global Shortcuts
 - `?` - Show help (macros and common commands)
 - `ESC` or `Ctrl-D` - Quit the application
-
-## UI Layout
-
-```
-┌─────────────────────────────────────────────────┐
-│ STATUS (top section)                            │
-│ State: Printing | Idle | Paused                 │
-│ File: filename.gcode                            │
-│ Progress: [██████████░░░░░░░░░] 45% (30m/1h5m) │
-│ Bed: 60°C/60°C  Nozzle: 210°C/210°C           │
-│ Position: X:100.0 Y:100.0 Z:5.50               │
-│ Speed: 100% Flow: 100%                          │
-├─────────────────────────────────────────────────┤
-│ TERMINAL (scrollable middle section)            │
-│ > G28                                           │
-│ ok                                              │
-│ > M104 S210                                     │
-│ ok                                              │
-│ ...                                             │
-├─────────────────────────────────────────────────┤
-│ INPUT (bottom section)                          │
-│ Command: G28_                                   │
-│ [q]uit [p]ause [r]esume [c]ancel [Tab]focus   │
-└─────────────────────────────────────────────────┘
-```
-
-## Common G-code Commands
-
-- `G28` - Home all axes
-- `G28 X` - Home X axis only
-- `G28 Y` - Home Y axis only
-- `G28 Z` - Home Z axis only
-- `M104 S200` - Set hotend temperature to 200°C
-- `M140 S60` - Set bed temperature to 60°C
-- `M109 S200` - Set hotend temperature and wait
-- `M190 S60` - Set bed temperature and wait
-- `M106 S255` - Turn fan on (full speed)
-- `M107` - Turn fan off
-- `M114` - Get current position
-- `G0 X100 Y100` - Move to position (rapid)
-- `G1 X100 Y100 F3000` - Move to position (linear)
 
 ## Configuration
 
