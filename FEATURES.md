@@ -2,7 +2,7 @@
 
 ## Overview
 
-Moonraker TUI is designed to behave like a terminal with helpful features while avoiding dangerous accidental commands.
+Mooncrescent is designed to behave like a terminal with helpful features while avoiding dangerous accidental commands.
 
 ## Key Design Principles
 
@@ -121,7 +121,7 @@ No confusing modes or focus switching - it just works like a terminal.
 
 ### Getting Started
 
-1. Start the TUI: `python main.py`
+1. Start Mooncrescent: `python mooncrescent.py`
 2. Press `h` to see help
 3. Start typing a command, press Tab to complete
 4. Press Enter to send

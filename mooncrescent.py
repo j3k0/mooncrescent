@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Moonraker TUI - Terminal User Interface for 3D Printer Control"""
+"""Mooncrescent - Terminal UI for Moonraker/Klipper 3D Printers"""
 
 import curses
 import argparse
@@ -58,7 +58,7 @@ class MoonrakerTUI:
         try:
             # Initialize UI
             self.ui = UILayout(self.stdscr)
-            self.ui.add_terminal_line("Moonraker TUI starting...", is_command=False)
+            self.ui.add_terminal_line("Mooncrescent starting...", is_command=False)
             self.ui.add_terminal_line(f"Connecting to {self.host}:{self.port}...", is_command=False)
             self.ui.render()
             
@@ -66,7 +66,7 @@ class MoonrakerTUI:
             self.client = MoonrakerClient(self.host, self.port)
             if not self.client.connect():
                 self.ui.add_terminal_line("Failed to connect to Moonraker", is_error=True)
-                self.ui.add_terminal_line("Press 'q' to quit", is_command=False)
+                self.ui.add_terminal_line("Press ESC to quit", is_command=False)
                 self.ui.render()
                 
                 # Wait for quit
@@ -346,7 +346,7 @@ class MoonrakerTUI:
 def main():
     """Entry point"""
     # Parse command-line arguments
-    parser = argparse.ArgumentParser(description="Moonraker TUI - 3D Printer Terminal Interface")
+    parser = argparse.ArgumentParser(description="Mooncrescent - Terminal UI for Moonraker/Klipper 3D Printers")
     parser.add_argument("--host", default=PRINTER_HOST, help="Moonraker host address")
     parser.add_argument("--port", type=int, default=PRINTER_PORT, help="Moonraker port")
     args = parser.parse_args()

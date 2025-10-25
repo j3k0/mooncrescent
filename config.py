@@ -19,5 +19,5 @@ STATUS_HEIGHT = 10
 INPUT_HEIGHT = 3
 
 # History file
-HISTORY_FILE = "~/.moonraker_tui_history"
+HISTORY_FILE = "~/.mooncrescent_history"
 

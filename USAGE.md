@@ -1,4 +1,4 @@
-# Moonraker TUI - Usage Guide
+# Mooncrescent - Usage Guide
 
 ## Quick Start
 
@@ -12,13 +12,13 @@ pip install -r requirements.txt
 
 ```bash
 # Using default configuration (edit config.py first)
-python main.py
+python mooncrescent.py
 
 # Or specify printer address directly
-python main.py --host 192.168.1.100 --port 7125
+python mooncrescent.py --host 192.168.1.100 --port 7125
 
 # Using hostname (if configured on your network)
-python main.py --host mainsailos.local
+python mooncrescent.py --host mainsailos.local
 ```
 
 ## Interface Overview

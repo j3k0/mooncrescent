@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Moonraker TUI project includes two types of tests:
+Mooncrescent includes two types of tests:
 
 1. **Component Tests** (`test_components.py`) - Unit tests for individual modules
 2. **Integration Tests** (`test_integration.py`) - Tests against a real Moonraker instance

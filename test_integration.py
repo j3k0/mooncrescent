@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Integration tests for Moonraker TUI with real printer connection"""
+"""Integration tests for Mooncrescent with real printer connection"""
 
 import sys
 import time
@@ -191,7 +191,7 @@ def test_gcode_http_directly(host: str, port: int, command: str = "M115"):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Integration tests for Moonraker TUI")
+    parser = argparse.ArgumentParser(description="Integration tests for Mooncrescent")
     parser.add_argument("--host", default=PRINTER_HOST, help="Moonraker host")
     parser.add_argument("--port", type=int, default=PRINTER_PORT, help="Moonraker port")
     parser.add_argument("--command", default="M115", help="G-code command to test")
@@ -200,7 +200,7 @@ def main():
     args = parser.parse_args()
     
     print("=" * 50)
-    print("Moonraker TUI Integration Tests")
+    print("Mooncrescent Integration Tests")
     print("=" * 50)
     print(f"Host: {args.host}:{args.port}")
     print()

@@ -1,14 +1,14 @@
-# Moonraker TUI
+# Mooncrescent
 
-A Python curses-based Terminal User Interface (TUI) for monitoring and controlling a 3D printer via Moonraker's WebSocket and HTTP APIs.
+A Python curses-based terminal interface for monitoring and controlling Moonraker/Klipper 3D printers via WebSocket and HTTP APIs.
 
 ## Features
 
 - **Real-time Monitoring**: Live temperature, position, and print progress updates
 - **Interactive Terminal**: Send G-code commands directly to your printer
-- **Print Control**: Pause, resume, and cancel prints with keyboard shortcuts
-- **Command History**: Navigate previous commands with arrow keys
-- **Scrollable Output**: Review command history and responses
+- **Tab Auto-completion**: Complete G-code commands and macros
+- **Persistent History**: Command history saved between sessions
+- **Help System**: Press `?` to see available macros and commands
 
 ## Requirements
 
@@ -21,7 +21,7 @@ A Python curses-based Terminal User Interface (TUI) for monitoring and controlli
 1. Clone or download this repository:
 ```bash
 git clone <repository-url>
-cd Moonraker-CLI
+cd mooncrescent
 ```
 
 2. Install dependencies:
@@ -46,13 +46,13 @@ python main.py --host 192.168.1.100 --port 7125
 
 ```bash
 # Connect to printer at default IP
-python main.py
+python mooncrescent.py
 
 # Connect to printer with custom IP
-python main.py --host 192.168.1.50
+python mooncrescent.py --host 192.168.1.50
 
 # Connect to printer with hostname
-python main.py --host mainsailos.local
+python mooncrescent.py --host mainsailos.local
 ```
 
 ## Keyboard Controls

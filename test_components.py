@@ -20,8 +20,8 @@ def test_imports():
         import ui_layout
         print("✓ ui_layout imported")
         
-        import main
-        print("✓ main imported")
+        import mooncrescent
+        print("✓ mooncrescent imported")
         
         return True
     except ImportError as e:
@@ -131,7 +131,7 @@ def test_config():
 def main():
     """Run all tests"""
     print("=" * 50)
-    print("Moonraker TUI Component Tests")
+    print("Mooncrescent Component Tests")
     print("=" * 50)
     
     results = []

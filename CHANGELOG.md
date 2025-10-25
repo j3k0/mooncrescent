@@ -1,8 +1,17 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to Mooncrescent will be documented in this file.
 
 ## [Unreleased]
+
+### Changed
+- Project renamed from "Moonraker TUI" to "Mooncrescent"
+- History file renamed from `~/.moonraker_tui_history` to `~/.mooncrescent_history`
+- Main executable renamed from `main.py` to `mooncrescent.py`
+
+## [0.2.0] - Mooncrescent Release
+
+### Breaking Changes
 
 ### Changed
 - **BREAKING**: Removed h and q shortcuts that interfered with G-code commands
