@@ -200,7 +200,9 @@ class MoonrakerClient:
         try:
             url = f"{self.http_url}/printer/gcode/script"
             params = {"script": command}
-            response = requests.post(url, params=params, timeout=5)
+            # Long timeout for commands that take time (homing, heating, etc.)
+            # The response comes via WebSocket anyway
+            response = requests.post(url, params=params, timeout=120)
             
             if response.status_code == 200:
                 return True
@@ -210,6 +212,15 @@ class MoonrakerClient:
                     "message": f"GCode failed: {response.text}"
                 })
                 return False
+                
+        except requests.exceptions.Timeout:
+            # Command was sent but took too long - this is actually OK
+            # The response will come via WebSocket
+            self.message_queue.put({
+                "type": "gcode_response",
+                "response": "(command sent, waiting for completion...)"
+            })
+            return True
                 
         except requests.exceptions.RequestException as e:
             self.message_queue.put({
