@@ -66,6 +66,10 @@ python mooncrescent.py --host mainsailos.local
 - `Backspace` - Delete character before cursor
 - `Delete` - Delete character at cursor
 
+### Terminal Scrolling
+- `Page Up` - Scroll terminal output up
+- `Page Down` - Scroll terminal output down
+
 ### Global Shortcuts
 - `?` - Show help (macros and common commands)
 - `ESC` or `Ctrl-D` - Quit the application

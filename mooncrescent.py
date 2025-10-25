@@ -176,6 +176,14 @@ class MoonrakerTUI:
                 self.cmd_handler.history_down()
                 return True  # Text changed (history navigation)
                 
+            elif key == curses.KEY_PPAGE:  # Page Up - scroll terminal up
+                self.ui.scroll_terminal(10)
+                return True  # Terminal scrolled
+                
+            elif key == curses.KEY_NPAGE:  # Page Down - scroll terminal down
+                self.ui.scroll_terminal(-10)
+                return True  # Terminal scrolled
+                
             elif key == curses.KEY_RESIZE:
                 self.ui.resize()
                 return True  # Screen resized
