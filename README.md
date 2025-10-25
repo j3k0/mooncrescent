@@ -57,24 +57,18 @@ python main.py --host mainsailos.local
 
 ## Keyboard Controls
 
-### Global Controls
-- `q` - Quit the application
-- `Tab` - Switch focus between terminal and input
-- `p` - Pause current print
-- `r` - Resume paused print
-- `c` - Cancel current print
-
-### When Input is Focused
+### Command Input
 - `Enter` - Send G-code command
-- `↑/↓` - Navigate command history
+- `Tab` - Auto-complete command
+- `↑/↓` - Navigate command history (persisted across sessions)
 - `←/→` - Move cursor in command line
 - `Home/End` - Jump to start/end of command
 - `Backspace` - Delete character before cursor
 - `Delete` - Delete character at cursor
 
-### When Terminal is Focused
-- `↑/↓` - Scroll terminal output one line
-- `Page Up/Down` - Scroll terminal output one page
+### Global Shortcuts
+- `?` - Show help (macros and common commands)
+- `ESC` or `Ctrl-D` - Quit the application
 
 ## UI Layout
 

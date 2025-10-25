@@ -185,16 +185,16 @@ Or use M-codes:
 
 | Key | Action |
 |-----|--------|
-| `h` | Show help |
+| `?` | Show help |
 | `Tab` | Auto-complete command |
-| `↑` | Previous command |
-| `↓` | Next command |
+| `↑` | Previous command (persisted) |
+| `↓` | Next command (persisted) |
 | `Enter` | Send command |
 | `←` / `→` | Move cursor |
 | `Home` / `End` | Jump to start/end |
 | `Backspace` | Delete before cursor |
 | `Delete` | Delete at cursor |
-| `q` | Quit application |
+| `ESC` / `Ctrl-D` | Quit application |
 
 ## Why These Design Choices?
 
@@ -231,11 +231,39 @@ This requires conscious action and typing, preventing accidents.
 - Avoid typos
 - Learn macro names
 
+### Safe Keyboard Shortcuts
+
+**Changed:** 
+- Quit: From `q` to `ESC` or `Ctrl-D`
+- Help: From `h` to `?`
+
+**Reason:** The old shortcuts (`h`, `q`) would trigger while typing G-code commands that contain those letters. For example:
+- Typing "M109" would trigger help at the 'h'
+- Typing "HEAT_BED" would trigger help at the 'h'
+- Typing "QUERY_ADC" would trigger quit at the 'q'
+
+**Result:** 
+- `ESC` and `Ctrl-D` are standard terminal quit shortcuts that can't be accidentally typed
+- `?` clearly signals intent to get help and won't interfere with any G-code
+- You can now type any command without fear of triggering shortcuts
+
+### Command History Persistence
+
+**Added:** History saved to `~/.moonraker_tui_history`
+
+**Reason:** Like bash/zsh, your command history should persist between sessions.
+
+**Benefits:**
+- Find commands you ran yesterday
+- Build your personal command library
+- No need to remember complex macro names
+- Limited to 1000 most recent commands
+
 ## Tips & Tricks
 
 ### Discover Available Macros
 
-Press `h` to see all macros defined in your printer config.
+Press `?` to see all macros defined in your printer config.
 
 ### Quick Temperature Commands
 

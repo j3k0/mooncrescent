@@ -5,12 +5,18 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **BREAKING**: Removed h and q shortcuts that interfered with G-code commands
+- **BREAKING**: Changed quit shortcut to ESC or Ctrl-D (safer, no accidental quits)
+- **BREAKING**: Changed help shortcut to ? (question mark)
 - Removed pause/resume/cancel keyboard shortcuts (p, r, c) - use G-code commands instead for safety
 - Removed Tab focus switching - input is always focused, making it behave more like a terminal
 - Changed Tab key to trigger auto-completion instead of focus switching
 - Updated help text in input panel to reflect new shortcuts
 
 ### Added
+- History persistence: Commands automatically saved to ~/.moonraker_tui_history
+- Auto-load history on startup, auto-save on exit
+- History limited to 1000 most recent commands
 - [h]elp command to display available macros and common G-code commands
 - Tab auto-completion for G-code commands and macros
 - API methods to fetch available macros from Moonraker
