@@ -78,7 +78,8 @@ Edit `config.py` to change default settings:
 PRINTER_HOST = "127.0.0.1"       # Default printer IP
 PRINTER_PORT = 7125              # Default Moonraker port
 TERMINAL_HISTORY_SIZE = 1000     # Max terminal lines
-UPDATE_INTERVAL = 0.1            # UI refresh rate (seconds)
+UPDATE_INTERVAL = 0.1            # UI refresh rate for status (seconds)
+                                 # Try 2.0 for slow computers (input is always instant)
 
 # Terminal filtering
 FILTER_PATTERNS = [              # Patterns to filter out
