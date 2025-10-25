@@ -81,18 +81,19 @@ class UILayout:
     def render_status(self):
         """Render the status window"""
         self.status_win.clear()
-        self.status_win.box()
         
         try:
             # Connection status
             if self.connected:
-                self.status_win.addstr(0, 2, " STATUS ", curses.A_BOLD)
+                self.status_win.addstr(0, 0, "STATUS", curses.A_BOLD)
             else:
                 self.status_win.addstr(
-                    0, 2, " DISCONNECTED ", 
+                    0, 0, "DISCONNECTED", 
                     curses.color_pair(self.COLOR_ERROR) | curses.A_BOLD
                 )
-                self.status_win.refresh()
+                # Draw bottom separator
+                self.status_win.hline(STATUS_HEIGHT - 1, 0, curses.ACS_HLINE, self.width)
+                self.status_win.noutrefresh()
                 return
             
             # Print state
@@ -107,17 +108,17 @@ class UILayout:
             elif state == "error":
                 state_color = self.COLOR_ERROR
                 
-            self.status_win.addstr(1, 2, "State: ")
+            self.status_win.addstr(1, 0, "State: ")
             self.status_win.addstr(
-                1, 9, state.capitalize(), 
+                1, 7, state.capitalize(), 
                 curses.color_pair(state_color) | curses.A_BOLD
             )
             
             # Filename
             filename = print_stats.get("filename", "N/A")
-            if len(filename) > self.width - 10:
-                filename = "..." + filename[-(self.width - 13):]
-            self.status_win.addstr(2, 2, f"File: {filename}")
+            if len(filename) > self.width - 8:
+                filename = "..." + filename[-(self.width - 11):]
+            self.status_win.addstr(2, 0, f"File: {filename}")
             
             # Progress bar
             display_status = self.printer_data.get("display_status", {})
@@ -144,7 +145,7 @@ class UILayout:
             filled = int(bar_width * progress)
             bar = "█" * filled + "░" * (bar_width - filled)
             
-            self.status_win.addstr(3, 2, f"Progress: [{bar}] {progress_pct}% {time_str}")
+            self.status_win.addstr(3, 0, f"Progress: [{bar}] {progress_pct}% {time_str}")
             
             # Temperatures
             heater_bed = self.printer_data.get("heater_bed", {})
@@ -155,25 +156,25 @@ class UILayout:
             nozzle_temp = extruder.get("temperature", 0)
             nozzle_target = extruder.get("target", 0)
             
-            self.status_win.addstr(4, 2, "Bed: ")
+            self.status_win.addstr(4, 0, "Bed: ")
             
             # Bed color
             bed_color = self._get_temp_color(bed_temp, bed_target)
             self.status_win.addstr(
-                4, 7, f"{bed_temp:.1f}°C", 
+                4, 5, f"{bed_temp:.1f}°C", 
                 curses.color_pair(bed_color)
             )
-            self.status_win.addstr(4, 17, f"/{bed_target:.0f}°C")
+            self.status_win.addstr(4, 15, f"/{bed_target:.0f}°C")
             
-            self.status_win.addstr(4, 27, "Nozzle: ")
+            self.status_win.addstr(4, 25, "Nozzle: ")
             
             # Nozzle color
             nozzle_color = self._get_temp_color(nozzle_temp, nozzle_target)
             self.status_win.addstr(
-                4, 35, f"{nozzle_temp:.1f}°C",
+                4, 33, f"{nozzle_temp:.1f}°C",
                 curses.color_pair(nozzle_color)
             )
-            self.status_win.addstr(4, 45, f"/{nozzle_target:.0f}°C")
+            self.status_win.addstr(4, 43, f"/{nozzle_target:.0f}°C")
             
             # Position
             toolhead = self.printer_data.get("toolhead", {})
@@ -182,7 +183,7 @@ class UILayout:
             if len(position) >= 3:
                 x, y, z = position[0], position[1], position[2]
                 self.status_win.addstr(
-                    5, 2, f"Position: X:{x:.2f} Y:{y:.2f} Z:{z:.2f}"
+                    5, 0, f"Position: X:{x:.2f} Y:{y:.2f} Z:{z:.2f}"
                 )
             
             # Speed and flow
@@ -191,14 +192,17 @@ class UILayout:
             extrude_factor = gcode_move.get("extrude_factor", 1.0) * 100
             
             self.status_win.addstr(
-                6, 2, f"Speed: {speed_factor:.0f}%  Flow: {extrude_factor:.0f}%"
+                6, 0, f"Speed: {speed_factor:.0f}%  Flow: {extrude_factor:.0f}%"
             )
             
             # Filament used
             filament_used = print_stats.get("filament_used", 0)
             if filament_used > 0:
                 filament_m = filament_used / 1000  # Convert mm to m
-                self.status_win.addstr(7, 2, f"Filament: {filament_m:.2f}m")
+                self.status_win.addstr(7, 0, f"Filament: {filament_m:.2f}m")
+            
+            # Draw bottom separator
+            self.status_win.hline(STATUS_HEIGHT - 1, 0, curses.ACS_HLINE, self.width)
             
         except curses.error:
             # Window too small or other curses error
@@ -232,7 +236,7 @@ class UILayout:
         
     def scroll_terminal(self, direction: int):
         """Scroll terminal up (1) or down (-1)"""
-        terminal_height = self.height - STATUS_HEIGHT - INPUT_HEIGHT - 2  # Minus borders
+        terminal_height = self.height - STATUS_HEIGHT - INPUT_HEIGHT
         max_scroll = max(0, len(self.terminal_lines) - terminal_height)
         
         self.terminal_scroll_offset -= direction
@@ -241,10 +245,9 @@ class UILayout:
     def render_terminal(self):
         """Render terminal window with scrolling"""
         self.terminal_win.clear()
-        self.terminal_win.box()
         
         try:
-            terminal_height = self.height - STATUS_HEIGHT - INPUT_HEIGHT - 2
+            terminal_height = self.height - STATUS_HEIGHT - INPUT_HEIGHT
             
             # Calculate visible range
             total_lines = len(self.terminal_lines)
@@ -252,27 +255,28 @@ class UILayout:
             end_idx = total_lines - self.terminal_scroll_offset
             
             # Render visible lines
-            y = 1
+            y = 0
             for i in range(start_idx, end_idx):
                 if i >= 0 and i < len(self.terminal_lines):
                     line, color = self.terminal_lines[i]
                     
                     # Truncate line if too long
-                    max_width = self.width - 3
+                    max_width = self.width
                     if len(line) > max_width:
                         line = line[:max_width - 3] + "..."
                         
                     self.terminal_win.addstr(
-                        y, 1, line,
+                        y, 0, line,
                         curses.color_pair(color)
                     )
                     y += 1
                     
             # Show scroll indicator if scrolled
             if self.terminal_scroll_offset > 0:
-                indicator = f" ↑ Scrolled ({self.terminal_scroll_offset}) "
+                indicator = f"↑ Scrolled ({self.terminal_scroll_offset})"
+                x_pos = max(0, self.width - len(indicator) - 1)
                 self.terminal_win.addstr(
-                    0, self.width // 2 - len(indicator) // 2, 
+                    0, x_pos, 
                     indicator,
                     curses.color_pair(self.COLOR_WARNING)
                 )
