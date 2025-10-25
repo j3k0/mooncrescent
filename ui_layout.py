@@ -120,17 +120,63 @@ class UILayout:
                 filename = "..." + filename[-(self.width - 11):]
             self.status_win.addstr(2, 0, f"File: {filename}")
             
-            # Progress bar
+            # Progress bar and time estimates
             display_status = self.printer_data.get("display_status", {})
-            progress = display_status.get("progress", 0.0)
+            progress = display_status.get("progress", 0.0)  # File progress (0-1)
             progress_pct = int(progress * 100)
             
-            total_duration = print_stats.get("total_duration", 0)
             print_duration = print_stats.get("print_duration", 0)
+            filament_used = print_stats.get("filament_used", 0)
+            
+            # Get slicer estimates from info
+            info = print_stats.get("info", {})
+            slicer_time = info.get("total_duration") if isinstance(info, dict) else None
+            total_filament = info.get("total_filament") if isinstance(info, dict) else None
+            
+            # Calculate smart ETA
+            def calculate_eta():
+                """Calculate blended ETA: transitions from slicer → progress-based"""
+                if progress <= 0 or print_duration <= 0:
+                    return None, None
+                
+                # Calculate progress-based ETA (file)
+                file_progress = progress
+                progress_eta_file = (print_duration / file_progress) if file_progress > 0 else None
+                
+                # Calculate progress-based ETA (filament)
+                filament_progress = 0
+                if total_filament and total_filament > 0 and filament_used > 0:
+                    filament_progress = filament_used / total_filament
+                
+                progress_eta_filament = (print_duration / filament_progress) if filament_progress > 0 else None
+                
+                # Average file and filament progress ETAs
+                if progress_eta_file and progress_eta_filament:
+                    progress_eta = (progress_eta_file + progress_eta_filament) / 2
+                    avg_progress = (file_progress + filament_progress) / 2
+                elif progress_eta_file:
+                    progress_eta = progress_eta_file
+                    avg_progress = file_progress
+                else:
+                    return None, None
+                
+                # Blend with slicer estimate
+                if slicer_time and slicer_time > 0:
+                    # Coefficient: confidence in progress-based estimate
+                    coef = avg_progress
+                    blended_eta = coef * progress_eta + (1 - coef) * slicer_time
+                    time_left = blended_eta - print_duration
+                else:
+                    # No slicer estimate, use progress-based only
+                    time_left = progress_eta - print_duration
+                
+                return max(0, time_left), None
+            
+            time_left, _ = calculate_eta()
             
             # Format time
             def format_time(seconds):
-                if seconds is None or seconds == 0:
+                if seconds is None or seconds <= 0:
                     return "--:--"
                 hours = int(seconds // 3600)
                 minutes = int((seconds % 3600) // 60)
@@ -138,7 +184,20 @@ class UILayout:
                     return f"{hours}h{minutes}m"
                 return f"{minutes}m"
             
-            time_str = f"({format_time(print_duration)}/{format_time(total_duration)})"
+            def format_eta_time(seconds):
+                """Format ETA as HH:MM"""
+                if seconds is None or seconds <= 0:
+                    return "--:--"
+                import time
+                eta_timestamp = time.time() + seconds
+                eta_local = time.localtime(eta_timestamp)
+                return f"{eta_local.tm_hour:02d}:{eta_local.tm_min:02d}"
+            
+            # Build time string
+            if time_left is not None and time_left >= 0:
+                time_str = f"{format_time(time_left)} left (ETA: {format_eta_time(time_left)})"
+            else:
+                time_str = f"Elapsed: {format_time(print_duration)}"
             
             # Progress bar
             bar_width = 20

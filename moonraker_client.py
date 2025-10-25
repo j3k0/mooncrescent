@@ -106,7 +106,7 @@ class MoonrakerClient:
                 "objects": {
                     "print_stats": [
                         "state", "filename", "total_duration", 
-                        "print_duration", "filament_used"
+                        "print_duration", "filament_used", "info"
                     ],
                     "display_status": ["progress", "message"],
                     "toolhead": [
