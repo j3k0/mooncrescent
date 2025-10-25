@@ -22,6 +22,9 @@ INPUT_HEIGHT = 3
 HISTORY_FILE = "~/.mooncrescent_history"
 
 # Terminal filtering
-FILTER_GCODE_COMMENTS = True  # Filter out "// ..." informational messages
-FILTER_OK_RESPONSES = False   # Filter out standalone "ok" responses
+FILTER_PATTERNS = [
+    "// pressure_advance:",      # Orca Slicer adaptive PA spam
+    "// SYNC TIME",              # Time sync messages (optional)
+]
+FILTER_OK_RESPONSES = False      # Filter out standalone "ok" responses
 

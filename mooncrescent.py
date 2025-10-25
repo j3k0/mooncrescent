@@ -8,7 +8,7 @@ import time
 import locale
 from typing import Optional
 
-from config import PRINTER_HOST, PRINTER_PORT, UPDATE_INTERVAL, HISTORY_FILE, FILTER_GCODE_COMMENTS, FILTER_OK_RESPONSES
+from config import PRINTER_HOST, PRINTER_PORT, UPDATE_INTERVAL, HISTORY_FILE, FILTER_PATTERNS, FILTER_OK_RESPONSES
 from moonraker_client import MoonrakerClient
 from ui_layout import UILayout
 from command_handler import CommandHandler
@@ -308,9 +308,16 @@ class MoonrakerTUI:
                 # Display G-code response
                 response = message.get("response", "")
                 if response.strip():
-                    # Apply filters
-                    if FILTER_GCODE_COMMENTS and response.strip().startswith("//"):
-                        continue  # Skip G-code comments
+                    # Apply pattern filters (skip known spam)
+                    should_skip = False
+                    for pattern in FILTER_PATTERNS:
+                        if pattern.lower() in response.lower():
+                            should_skip = True
+                            break
+                    
+                    if should_skip:
+                        continue  # Skip messages matching filter patterns
+                    
                     if FILTER_OK_RESPONSES and response.strip().lower() == "ok":
                         continue  # Skip standalone "ok" responses
                     

@@ -81,7 +81,9 @@ TERMINAL_HISTORY_SIZE = 1000     # Max terminal lines
 UPDATE_INTERVAL = 0.1            # UI refresh rate (seconds)
 
 # Terminal filtering
-FILTER_GCODE_COMMENTS = True     # Filter "// ..." messages (Orca Slicer spam)
+FILTER_PATTERNS = [              # Patterns to filter out
+    "// pressure_advance:",      # Orca Slicer adaptive PA spam
+]
 FILTER_OK_RESPONSES = False      # Filter standalone "ok" messages
 ```
 
