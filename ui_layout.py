@@ -204,7 +204,7 @@ class UILayout:
             # Window too small or other curses error
             pass
             
-        self.status_win.refresh()
+        self.status_win.noutrefresh()
         
     def _get_temp_color(self, current: float, target: float) -> int:
         """Get color for temperature display"""
@@ -280,7 +280,7 @@ class UILayout:
         except curses.error:
             pass
             
-        self.terminal_win.refresh()
+        self.terminal_win.noutrefresh()
         
     def render_input(self, command_text: str, cursor_pos: int):
         """Render input window"""
@@ -322,13 +322,15 @@ class UILayout:
         except curses.error:
             pass
             
-        self.input_win.refresh()
+        self.input_win.noutrefresh()
         
     def render(self, command_text: str = "", cursor_pos: int = 0):
         """Render all windows"""
         self.render_status()
         self.render_terminal()
         self.render_input(command_text, cursor_pos)
+        # Update physical screen once (reduces flicker)
+        curses.doupdate()
         
     def resize(self):
         """Handle terminal resize"""
