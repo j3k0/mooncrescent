@@ -1,6 +1,6 @@
 # Mooncrescent
 
-A Python curses-based terminal interface for monitoring and controlling Moonraker/Klipper 3D printers via WebSocket and HTTP APIs.
+Terminal interface for monitoring and controlling Moonraker/Klipper 3D printers.
 
 ## Features
 
