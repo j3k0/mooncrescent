@@ -16,5 +16,5 @@ UPDATE_INTERVAL = 0.1  # seconds (100ms for responsive UI)
 STATUS_HEIGHT = 10
 
 # Input window height
-INPUT_HEIGHT = 2
+INPUT_HEIGHT = 3
 

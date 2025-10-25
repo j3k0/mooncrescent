@@ -285,15 +285,17 @@ class UILayout:
     def render_input(self, command_text: str, cursor_pos: int):
         """Render input window"""
         self.input_win.clear()
-        self.input_win.box()
         
         try:
+            # Draw separator line at top
+            self.input_win.hline(0, 0, curses.ACS_HLINE, self.width)
+            
             # Command prompt
             prompt = "Command: "
-            self.input_win.addstr(0, 1, prompt)
+            self.input_win.addstr(1, 0, prompt)
             
             # Command text
-            max_cmd_width = self.width - len(prompt) - 3
+            max_cmd_width = self.width - len(prompt) - 1
             visible_text = command_text
             
             # Handle text longer than window
@@ -306,16 +308,16 @@ class UILayout:
                 else:
                     visible_text = command_text[:max_cmd_width]
                     
-            self.input_win.addstr(0, len(prompt) + 1, visible_text)
+            self.input_win.addstr(1, len(prompt), visible_text)
             
-            # Help text
-            help_text = "[q]uit [p]ause [r]esume [c]ancel [Tab]focus"
-            if len(help_text) < self.width - 2:
-                self.input_win.addstr(1, 1, help_text, curses.A_DIM)
+            # Help text (updated shortcuts)
+            help_text = "[q]uit [h]elp [Tab]complete"
+            if len(help_text) < self.width:
+                self.input_win.addstr(2, 0, help_text, curses.A_DIM)
             
             # Position cursor
             curses.curs_set(1)
-            self.input_win.move(0, len(prompt) + 1 + cursor_pos)
+            self.input_win.move(1, len(prompt) + cursor_pos)
             
         except curses.error:
             pass

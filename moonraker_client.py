@@ -302,6 +302,48 @@ class MoonrakerClient:
         except requests.exceptions.RequestException:
             return False
             
+    def get_gcode_help(self) -> Optional[Dict]:
+        """Get available G-code commands and help"""
+        try:
+            url = f"{self.http_url}/printer/gcode/help"
+            response = requests.get(url, timeout=5)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "result" in data:
+                    return data["result"]
+            return None
+            
+        except requests.exceptions.RequestException:
+            return None
+            
+    def get_available_macros(self) -> list:
+        """Get list of available G-code macros"""
+        try:
+            # Query for all configfile data which includes macros
+            url = f"{self.http_url}/printer/objects/query"
+            params = {"configfile": ""}
+            response = requests.get(url, params=params, timeout=5)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "result" in data and "status" in data["result"]:
+                    config = data["result"]["status"].get("configfile", {})
+                    settings = config.get("settings", {})
+                    
+                    # Extract macros (they start with "gcode_macro ")
+                    macros = []
+                    for key in settings.keys():
+                        if key.startswith("gcode_macro "):
+                            macro_name = key.replace("gcode_macro ", "")
+                            macros.append(macro_name)
+                    
+                    return sorted(macros)
+            return []
+            
+        except requests.exceptions.RequestException:
+            return []
+            
     def get_message(self) -> Optional[Dict]:
         """Get next message from queue (non-blocking)"""
         if not self.message_queue.empty():

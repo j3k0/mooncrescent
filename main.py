@@ -29,7 +29,6 @@ class MoonrakerTUI:
         
         # State
         self.running = True
-        self.focused_on_input = True
         
         # Setup
         self._setup_curses()
@@ -121,83 +120,49 @@ class MoonrakerTUI:
                 self.running = False
                 return
                 
-            elif key == ord('\t'):  # Tab - switch focus
-                self.focused_on_input = not self.focused_on_input
-                if not self.focused_on_input:
-                    curses.curs_set(0)
-                else:
-                    curses.curs_set(1)
+            elif key == ord('h') or key == ord('H'):  # Help
+                self._show_help()
                 return
                 
-            elif key == ord('p') or key == ord('P'):  # Pause
-                if self.client:
-                    self.client.pause_print()
-                    self.ui.add_terminal_line("Pausing print...", is_command=False)
-                return
+            # Command input handling
+            if key == ord('\n') or key == curses.KEY_ENTER or key == 10:
+                # Submit command
+                command = self.cmd_handler.submit_command()
+                if command:
+                    self._send_command(command)
+                    
+            elif key == ord('\t'):  # Tab - auto-complete
+                self._handle_tab_complete()
                 
-            elif key == ord('r') or key == ord('R'):  # Resume
-                if self.client:
-                    self.client.resume_print()
-                    self.ui.add_terminal_line("Resuming print...", is_command=False)
-                return
+            elif key == curses.KEY_BACKSPACE or key == 127 or key == 8:
+                self.cmd_handler.delete_char()
                 
-            elif key == ord('c') or key == ord('C'):  # Cancel (with confirmation)
-                if not self.focused_on_input:
-                    # Simple cancel confirmation
-                    if self.client:
-                        self.client.cancel_print()
-                        self.ui.add_terminal_line("Canceling print...", is_command=False)
-                return
-            
-            # Terminal scrolling (when not focused on input)
-            if not self.focused_on_input:
-                if key == curses.KEY_UP:
-                    self.ui.scroll_terminal(1)
-                elif key == curses.KEY_DOWN:
-                    self.ui.scroll_terminal(-1)
-                elif key == curses.KEY_PPAGE:  # Page Up
-                    self.ui.scroll_terminal(10)
-                elif key == curses.KEY_NPAGE:  # Page Down
-                    self.ui.scroll_terminal(-10)
-                return
-            
-            # Command input handling (when focused on input)
-            if self.focused_on_input:
-                if key == ord('\n') or key == curses.KEY_ENTER or key == 10:
-                    # Submit command
-                    command = self.cmd_handler.submit_command()
-                    if command:
-                        self._send_command(command)
-                        
-                elif key == curses.KEY_BACKSPACE or key == 127 or key == 8:
-                    self.cmd_handler.delete_char()
-                    
-                elif key == curses.KEY_DC:  # Delete key
-                    self.cmd_handler.delete_char_forward()
-                    
-                elif key == curses.KEY_LEFT:
-                    self.cmd_handler.move_cursor(-1)
-                    
-                elif key == curses.KEY_RIGHT:
-                    self.cmd_handler.move_cursor(1)
-                    
-                elif key == curses.KEY_HOME:
-                    self.cmd_handler.move_cursor_home()
-                    
-                elif key == curses.KEY_END:
-                    self.cmd_handler.move_cursor_end()
-                    
-                elif key == curses.KEY_UP:
-                    self.cmd_handler.history_up()
-                    
-                elif key == curses.KEY_DOWN:
-                    self.cmd_handler.history_down()
-                    
-                elif key == curses.KEY_RESIZE:
-                    self.ui.resize()
-                    
-                elif 32 <= key <= 126:  # Printable characters
-                    self.cmd_handler.add_char(chr(key))
+            elif key == curses.KEY_DC:  # Delete key
+                self.cmd_handler.delete_char_forward()
+                
+            elif key == curses.KEY_LEFT:
+                self.cmd_handler.move_cursor(-1)
+                
+            elif key == curses.KEY_RIGHT:
+                self.cmd_handler.move_cursor(1)
+                
+            elif key == curses.KEY_HOME:
+                self.cmd_handler.move_cursor_home()
+                
+            elif key == curses.KEY_END:
+                self.cmd_handler.move_cursor_end()
+                
+            elif key == curses.KEY_UP:
+                self.cmd_handler.history_up()
+                
+            elif key == curses.KEY_DOWN:
+                self.cmd_handler.history_down()
+                
+            elif key == curses.KEY_RESIZE:
+                self.ui.resize()
+                
+            elif 32 <= key <= 126:  # Printable characters
+                self.cmd_handler.add_char(chr(key))
                     
         except curses.error:
             pass
@@ -212,6 +177,111 @@ class MoonrakerTUI:
                 self.ui.add_terminal_line("Failed to send command", is_error=True)
         else:
             self.ui.add_terminal_line("Not connected", is_error=True)
+            
+    def _show_help(self):
+        """Display help with available macros and common commands"""
+        self.ui.add_terminal_line("=" * 50, is_command=False)
+        self.ui.add_terminal_line("HELP - Available Commands", is_command=False)
+        self.ui.add_terminal_line("=" * 50, is_command=False)
+        
+        # Common G-code commands
+        self.ui.add_terminal_line("", is_command=False)
+        self.ui.add_terminal_line("Common G-code Commands:", is_command=False)
+        self.ui.add_terminal_line("  G28        - Home all axes", is_command=False)
+        self.ui.add_terminal_line("  G28 X Y    - Home X and Y axes", is_command=False)
+        self.ui.add_terminal_line("  M104 S200  - Set hotend temp to 200°C", is_command=False)
+        self.ui.add_terminal_line("  M140 S60   - Set bed temp to 60°C", is_command=False)
+        self.ui.add_terminal_line("  M109 S200  - Set hotend temp and wait", is_command=False)
+        self.ui.add_terminal_line("  M190 S60   - Set bed temp and wait", is_command=False)
+        self.ui.add_terminal_line("  M106 S255  - Fan on (full speed)", is_command=False)
+        self.ui.add_terminal_line("  M107       - Fan off", is_command=False)
+        self.ui.add_terminal_line("  M114       - Get current position", is_command=False)
+        self.ui.add_terminal_line("  M115       - Get firmware info", is_command=False)
+        
+        # Fetch and display available macros
+        if self.client:
+            macros = self.client.get_available_macros()
+            if macros:
+                self.ui.add_terminal_line("", is_command=False)
+                self.ui.add_terminal_line("Available Macros:", is_command=False)
+                for macro in macros:
+                    self.ui.add_terminal_line(f"  {macro}", is_command=False)
+            else:
+                self.ui.add_terminal_line("", is_command=False)
+                self.ui.add_terminal_line("(No macros found or unable to query)", is_command=False)
+        
+        self.ui.add_terminal_line("", is_command=False)
+        self.ui.add_terminal_line("Keyboard Shortcuts:", is_command=False)
+        self.ui.add_terminal_line("  h          - Show this help", is_command=False)
+        self.ui.add_terminal_line("  Tab        - Auto-complete command", is_command=False)
+        self.ui.add_terminal_line("  Up/Down    - Command history", is_command=False)
+        self.ui.add_terminal_line("  q          - Quit", is_command=False)
+        self.ui.add_terminal_line("=" * 50, is_command=False)
+        
+    def _handle_tab_complete(self):
+        """Handle tab completion for G-code commands and macros"""
+        current_text, cursor_pos = self.cmd_handler.get_display_text()
+        
+        if not current_text:
+            return
+            
+        # Get word at cursor
+        word_start = current_text.rfind(' ', 0, cursor_pos) + 1
+        word = current_text[word_start:cursor_pos].upper()
+        
+        if not word:
+            return
+            
+        # Build list of possible completions
+        completions = []
+        
+        # Common G-code commands
+        common_commands = [
+            "G28", "G28 X", "G28 Y", "G28 Z", "G28 X Y",
+            "G0", "G1", "G90", "G91",
+            "M104", "M109", "M140", "M190",
+            "M106", "M107", "M114", "M115", "M105",
+            "M84", "M112"
+        ]
+        
+        for cmd in common_commands:
+            if cmd.startswith(word):
+                completions.append(cmd)
+        
+        # Add macros if available
+        if self.client:
+            macros = self.client.get_available_macros()
+            for macro in macros:
+                if macro.upper().startswith(word):
+                    completions.append(macro)
+        
+        # If only one completion, auto-complete
+        if len(completions) == 1:
+            completion = completions[0]
+            # Replace the word with completion
+            new_text = current_text[:word_start] + completion
+            self.cmd_handler.command_buffer = new_text
+            self.cmd_handler.cursor_position = len(new_text)
+            
+        # If multiple completions, show them
+        elif len(completions) > 1:
+            self.ui.add_terminal_line(f"Completions: {', '.join(completions)}", is_command=False)
+            
+            # Find common prefix
+            if completions:
+                common_prefix = completions[0]
+                for comp in completions[1:]:
+                    # Find common prefix between common_prefix and comp
+                    i = 0
+                    while i < len(common_prefix) and i < len(comp) and common_prefix[i] == comp[i]:
+                        i += 1
+                    common_prefix = common_prefix[:i]
+                
+                # If common prefix is longer than what we have, complete to it
+                if len(common_prefix) > len(word):
+                    new_text = current_text[:word_start] + common_prefix
+                    self.cmd_handler.command_buffer = new_text
+                    self.cmd_handler.cursor_position = len(new_text)
             
     def _process_messages(self):
         """Process messages from Moonraker client"""
