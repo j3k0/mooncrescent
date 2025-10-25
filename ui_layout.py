@@ -311,7 +311,7 @@ class UILayout:
             self.input_win.addstr(1, len(prompt), visible_text)
             
             # Help text (updated shortcuts)
-            help_text = "[q]uit [h]elp [Tab]complete"
+            help_text = "[ESC/^D]quit [?]help [Tab]complete"
             if len(help_text) < self.width:
                 self.input_win.addstr(2, 0, help_text, curses.A_DIM)
             

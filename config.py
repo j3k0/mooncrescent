@@ -18,3 +18,6 @@ STATUS_HEIGHT = 10
 # Input window height
 INPUT_HEIGHT = 3
 
+# History file
+HISTORY_FILE = "~/.moonraker_tui_history"
+

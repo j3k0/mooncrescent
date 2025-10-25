@@ -1,5 +1,7 @@
 """Command input handling and history management"""
 
+import os
+
 
 class CommandHandler:
     """Manages command input, cursor position, and command history"""
@@ -102,6 +104,34 @@ class CommandHandler:
     def get_display_text(self) -> tuple[str, int]:
         """Get current command text and cursor position for display"""
         return (self.command_buffer, self.cursor_position)
+        
+    def load_history(self, history_file: str):
+        """Load command history from file"""
+        try:
+            expanded_path = os.path.expanduser(history_file)
+            if os.path.exists(expanded_path):
+                with open(expanded_path, 'r') as f:
+                    self.command_history = [line.strip() for line in f if line.strip()]
+        except Exception:
+            # Silently fail if we can't load history
+            pass
+    
+    def save_history(self, history_file: str):
+        """Save command history to file"""
+        try:
+            expanded_path = os.path.expanduser(history_file)
+            # Create directory if it doesn't exist
+            directory = os.path.dirname(expanded_path)
+            if directory and not os.path.exists(directory):
+                os.makedirs(directory, exist_ok=True)
+            
+            # Write history (limit to last 1000 commands)
+            with open(expanded_path, 'w') as f:
+                for cmd in self.command_history[-1000:]:
+                    f.write(cmd + '\n')
+        except Exception:
+            # Silently fail if we can't save history
+            pass
         
     def clear(self):
         """Clear command buffer"""

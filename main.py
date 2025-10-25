@@ -8,7 +8,7 @@ import time
 import locale
 from typing import Optional
 
-from config import PRINTER_HOST, PRINTER_PORT, UPDATE_INTERVAL
+from config import PRINTER_HOST, PRINTER_PORT, UPDATE_INTERVAL, HISTORY_FILE
 from moonraker_client import MoonrakerClient
 from ui_layout import UILayout
 from command_handler import CommandHandler
@@ -26,6 +26,9 @@ class MoonrakerTUI:
         self.client: Optional[MoonrakerClient] = None
         self.ui: Optional[UILayout] = None
         self.cmd_handler = CommandHandler()
+        
+        # Load command history from disk
+        self.cmd_handler.load_history(HISTORY_FILE)
         
         # State
         self.running = True
@@ -115,12 +118,13 @@ class MoonrakerTUI:
             if key == -1:  # No input
                 return
                 
-            # Global shortcuts
-            if key == ord('q') or key == ord('Q'):
+            # Quit shortcuts (ESC or CTRL-D)
+            if key == 27 or key == 4:  # ESC or CTRL-D
                 self.running = False
                 return
                 
-            elif key == ord('h') or key == ord('H'):  # Help
+            # Help shortcut
+            elif key == ord('?'):
                 self._show_help()
                 return
                 
@@ -212,10 +216,10 @@ class MoonrakerTUI:
         
         self.ui.add_terminal_line("", is_command=False)
         self.ui.add_terminal_line("Keyboard Shortcuts:", is_command=False)
-        self.ui.add_terminal_line("  h          - Show this help", is_command=False)
+        self.ui.add_terminal_line("  ?          - Show this help", is_command=False)
         self.ui.add_terminal_line("  Tab        - Auto-complete command", is_command=False)
         self.ui.add_terminal_line("  Up/Down    - Command history", is_command=False)
-        self.ui.add_terminal_line("  q          - Quit", is_command=False)
+        self.ui.add_terminal_line("  ESC/Ctrl-D - Quit", is_command=False)
         self.ui.add_terminal_line("=" * 50, is_command=False)
         
     def _handle_tab_complete(self):
@@ -330,6 +334,9 @@ class MoonrakerTUI:
             
     def _cleanup(self):
         """Cleanup resources"""
+        # Save command history to disk
+        self.cmd_handler.save_history(HISTORY_FILE)
+        
         if self.client:
             self.client.disconnect()
         if self.ui:
