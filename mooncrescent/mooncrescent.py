@@ -8,10 +8,10 @@ import time
 import locale
 from typing import Optional
 
-from config import PRINTER_HOST, PRINTER_PORT, UPDATE_INTERVAL, HISTORY_FILE, FILTER_PATTERNS, FILTER_OK_RESPONSES
-from moonraker_client import MoonrakerClient
-from ui_layout import UILayout
-from command_handler import CommandHandler
+from .config import PRINTER_HOST, PRINTER_PORT, UPDATE_INTERVAL, HISTORY_FILE, FILTER_PATTERNS, FILTER_OK_RESPONSES
+from .moonraker_client import MoonrakerClient
+from .ui_layout import UILayout
+from .command_handler import CommandHandler
 
 
 class MoonrakerTUI:

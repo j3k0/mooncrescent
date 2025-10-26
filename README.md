@@ -18,15 +18,23 @@ Terminal interface for monitoring and controlling Moonraker/Klipper 3D printers.
 
 ## Installation
 
+### From PyPI (Recommended)
+
+```bash
+pip install mooncrescent
+```
+
+### From Source
+
 1. Clone or download this repository:
 ```bash
 git clone https://github.com/j3k0/mooncrescent.git
 cd mooncrescent
 ```
 
-2. Install dependencies:
+2. Install in development mode:
 ```bash
-pip install -r requirements.txt
+pip install -e .
 ```
 
 ## Usage
@@ -34,7 +42,11 @@ pip install -r requirements.txt
 ### Basic Usage
 
 ```bash
-python main.py
+# If installed from PyPI
+mooncrescent
+
+# If running from source
+python -m mooncrescent
 ```
 
 ### Command-line Options
@@ -46,13 +58,13 @@ python main.py
 
 ```bash
 # Connect to printer at default IP
-python mooncrescent.py
+mooncrescent
 
 # Connect to printer with custom IP
-python mooncrescent.py --host 192.168.1.50
+mooncrescent --host 192.168.1.50
 
 # Connect to printer with hostname
-python mooncrescent.py --host mainsailos.local
+mooncrescent --host mainsailos.local
 ```
 
 ## Keyboard Controls

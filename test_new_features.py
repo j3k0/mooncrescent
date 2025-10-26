@@ -2,8 +2,8 @@
 """Test new features - help and macros"""
 
 import sys
-from moonraker_client import MoonrakerClient
-from config import PRINTER_HOST, PRINTER_PORT
+from mooncrescent.moonraker_client import MoonrakerClient
+from mooncrescent.config import PRINTER_HOST, PRINTER_PORT
 
 
 def test_macros():

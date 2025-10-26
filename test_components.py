@@ -8,16 +8,16 @@ def test_imports():
     """Test that all modules can be imported"""
     print("Testing imports...")
     try:
-        import config
+        from mooncrescent import config
         print("✓ config imported")
         
-        import command_handler
+        from mooncrescent import command_handler
         print("✓ command_handler imported")
         
-        import moonraker_client
+        from mooncrescent import moonraker_client
         print("✓ moonraker_client imported")
         
-        import ui_layout
+        from mooncrescent import ui_layout
         print("✓ ui_layout imported")
         
         import mooncrescent
@@ -33,7 +33,7 @@ def test_command_handler():
     """Test CommandHandler functionality"""
     print("\nTesting CommandHandler...")
     try:
-        from command_handler import CommandHandler
+        from mooncrescent.command_handler import CommandHandler
         
         handler = CommandHandler()
         
@@ -94,7 +94,7 @@ def test_moonraker_client():
     """Test MoonrakerClient initialization"""
     print("\nTesting MoonrakerClient...")
     try:
-        from moonraker_client import MoonrakerClient
+        from mooncrescent.moonraker_client import MoonrakerClient
         
         # Just test initialization (not actual connection)
         client = MoonrakerClient("192.168.1.100", 7125)
@@ -114,7 +114,7 @@ def test_config():
     """Test configuration loading"""
     print("\nTesting config...")
     try:
-        import config
+        from mooncrescent import config
         
         assert hasattr(config, 'PRINTER_HOST')
         assert hasattr(config, 'PRINTER_PORT')

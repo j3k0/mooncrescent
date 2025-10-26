@@ -3,7 +3,7 @@
 
 import os
 import tempfile
-from command_handler import CommandHandler
+from mooncrescent.command_handler import CommandHandler
 
 
 def test_history_persistence():

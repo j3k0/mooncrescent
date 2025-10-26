@@ -3,7 +3,7 @@
 import curses
 from collections import deque
 from typing import Dict, Any, Optional
-from config import STATUS_HEIGHT, INPUT_HEIGHT, TERMINAL_HISTORY_SIZE
+from .config import STATUS_HEIGHT, INPUT_HEIGHT, TERMINAL_HISTORY_SIZE
 
 
 class UILayout:
