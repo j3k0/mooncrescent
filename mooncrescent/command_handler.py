@@ -156,5 +156,6 @@ COMMON_GCODES = {
     "G1": "Linear move",
     "M114": "Get current position",
     "M115": "Get firmware info",
+    "FIRMWARE_RESTART": "Restart firmware (after emergency stop)",
 }
 
