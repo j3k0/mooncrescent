@@ -344,6 +344,30 @@ class MoonrakerClient:
         except requests.exceptions.RequestException:
             return []
             
+    def get_files_list(self, root: str = "gcodes") -> list:
+        """Get list of gcode files from server
+        
+        Returns:
+            List of dicts with file information (filename, size, modified time)
+            Sorted by modified time (oldest first, newest last)
+        """
+        try:
+            url = f"{self.http_url}/server/files/list"
+            params = {"root": root}
+            response = requests.get(url, params=params, timeout=5)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "result" in data:
+                    files = data["result"]
+                    # Sort by modified time (oldest first, newest last)
+                    files.sort(key=lambda f: f.get("modified", 0))
+                    return files
+            return []
+            
+        except requests.exceptions.RequestException:
+            return []
+            
     def get_message(self) -> Optional[Dict]:
         """Get next message from queue (non-blocking)"""
         if not self.message_queue.empty():

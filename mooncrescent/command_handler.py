@@ -142,20 +142,36 @@ class CommandHandler:
 
 # Common GCode commands for reference
 COMMON_GCODES = {
+    # File management
+    "ls": "List available gcode files",
+    "print": "Start printing a file (usage: print <filename>)",
+    "reprint": "Reprint the last file",
+    
+    # Homing
     "G28": "Home all axes",
     "G28 X": "Home X axis",
     "G28 Y": "Home Y axis", 
     "G28 Z": "Home Z axis",
+    
+    # Temperature control
     "M104 S200": "Set hotend temp to 200°C",
     "M140 S60": "Set bed temp to 60°C",
     "M109 S200": "Set hotend temp and wait",
     "M190 S60": "Set bed temp and wait",
+    
+    # Fan control
     "M106 S255": "Fan on full speed",
     "M107": "Fan off",
+    
+    # Movement
     "G0": "Rapid move",
     "G1": "Linear move",
+    
+    # Status and info
     "M114": "Get current position",
     "M115": "Get firmware info",
+    
+    # System commands
     "FIRMWARE_RESTART": "Restart firmware (after emergency stop)",
 }
 

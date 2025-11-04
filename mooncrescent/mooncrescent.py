@@ -32,6 +32,8 @@ class MoonrakerTUI:
         
         # State
         self.running = True
+        self.file_list_cache = []  # Cache for file list (for tab completion)
+        self.file_list_cache_time = 0  # Last time we fetched file list
         
         # Setup
         self._setup_curses()
@@ -198,21 +200,100 @@ class MoonrakerTUI:
             return False
             
     def _send_command(self, command: str):
-        """Send G-code command to printer"""
+        """Send G-code command to printer or handle special commands"""
         self.ui.add_terminal_line(f"> {command}", is_command=True)
         
-        if self.client:
-            success = self.client.send_gcode(command)
-            if not success:
-                self.ui.add_terminal_line("Failed to send command", is_error=True)
-        else:
+        if not self.client:
             self.ui.add_terminal_line("Not connected", is_error=True)
+            return
+        
+        # Handle special commands
+        cmd_lower = command.strip().lower()
+        
+        # List files command
+        if cmd_lower == "ls" or cmd_lower == "list":
+            self._handle_list_files()
+            return
+            
+        # Reprint last file command
+        if cmd_lower == "reprint":
+            self._handle_reprint()
+            return
+            
+        # Print file command
+        if cmd_lower.startswith("print "):
+            filename = command[6:].strip()  # Get filename after "print "
+            self._handle_print_file(filename)
+            return
+        
+        # Regular G-code command
+        success = self.client.send_gcode(command)
+        if not success:
+            self.ui.add_terminal_line("Failed to send command", is_error=True)
+            
+    def _handle_list_files(self):
+        """List available gcode files (oldest to newest)"""
+        files = self.client.get_files_list()
+        
+        if not files:
+            self.ui.add_terminal_line("No files found or unable to query", is_command=False)
+            return
+            
+        self.ui.add_terminal_line(f"Found {len(files)} file(s):", is_command=False)
+        for file_info in files:
+            filename = file_info.get("path", file_info.get("filename", "unknown"))
+            size = file_info.get("size", 0)
+            # Format size in KB or MB
+            if size > 1024 * 1024:
+                size_str = f"{size / (1024 * 1024):.2f} MB"
+            else:
+                size_str = f"{size / 1024:.2f} KB"
+            self.ui.add_terminal_line(f"  {filename} ({size_str})", is_command=False)
+            
+    def _handle_reprint(self):
+        """Reprint the last file"""
+        # Get current filename from print_stats
+        print_stats = self.client.printer_state.get("print_stats", {})
+        filename = print_stats.get("filename", "")
+        
+        if not filename:
+            self.ui.add_terminal_line("No previous file to reprint", is_error=True)
+            return
+            
+        self.ui.add_terminal_line(f"Starting print: {filename}", is_command=False)
+        success = self.client.start_print(filename)
+        
+        if success:
+            self.ui.add_terminal_line("Print started successfully", is_command=False)
+        else:
+            self.ui.add_terminal_line("Failed to start print", is_error=True)
+            
+    def _handle_print_file(self, filename: str):
+        """Start printing a specific file"""
+        if not filename:
+            self.ui.add_terminal_line("Usage: print <filename>", is_error=True)
+            return
+            
+        self.ui.add_terminal_line(f"Starting print: {filename}", is_command=False)
+        success = self.client.start_print(filename)
+        
+        if success:
+            self.ui.add_terminal_line("Print started successfully", is_command=False)
+        else:
+            self.ui.add_terminal_line("Failed to start print", is_error=True)
             
     def _show_help(self):
         """Display help with available macros and common commands"""
         self.ui.add_terminal_line("=" * 50, is_command=False)
         self.ui.add_terminal_line("HELP - Available Commands", is_command=False)
         self.ui.add_terminal_line("=" * 50, is_command=False)
+        
+        # File management commands
+        self.ui.add_terminal_line("", is_command=False)
+        self.ui.add_terminal_line("File Management:", is_command=False)
+        self.ui.add_terminal_line("  ls                 - List available gcode files", is_command=False)
+        self.ui.add_terminal_line("  print <filename>   - Start printing a file", is_command=False)
+        self.ui.add_terminal_line("  reprint            - Reprint the last file", is_command=False)
         
         # Common G-code commands
         self.ui.add_terminal_line("", is_command=False)
@@ -227,6 +308,7 @@ class MoonrakerTUI:
         self.ui.add_terminal_line("  M107       - Fan off", is_command=False)
         self.ui.add_terminal_line("  M114       - Get current position", is_command=False)
         self.ui.add_terminal_line("  M115       - Get firmware info", is_command=False)
+        self.ui.add_terminal_line("  FIRMWARE_RESTART - Restart firmware", is_command=False)
         
         # Fetch and display available macros
         if self.client:
@@ -249,10 +331,15 @@ class MoonrakerTUI:
         self.ui.add_terminal_line("=" * 50, is_command=False)
         
     def _handle_tab_complete(self):
-        """Handle tab completion for G-code commands and macros"""
+        """Handle tab completion for G-code commands, macros, and filenames"""
         current_text, cursor_pos = self.cmd_handler.get_display_text()
         
         if not current_text:
+            return
+        
+        # Check if we're completing a filename after "print "
+        if current_text.lower().startswith("print "):
+            self._complete_filename(current_text, cursor_pos)
             return
             
         # Get word at cursor
@@ -265,13 +352,19 @@ class MoonrakerTUI:
         # Build list of possible completions
         completions = []
         
+        # Special commands (ls, print, reprint)
+        special_commands = ["ls", "print", "reprint"]
+        for cmd in special_commands:
+            if cmd.upper().startswith(word):
+                completions.append(cmd)
+        
         # Common G-code commands
         common_commands = [
             "G28", "G28 X", "G28 Y", "G28 Z", "G28 X Y",
             "G0", "G1", "G90", "G91",
             "M104", "M109", "M140", "M190",
             "M106", "M107", "M114", "M115", "M105",
-            "M84", "M112"
+            "M84", "M112", "FIRMWARE_RESTART"
         ]
         
         for cmd in common_commands:
@@ -290,6 +383,9 @@ class MoonrakerTUI:
             completion = completions[0]
             # Replace the word with completion
             new_text = current_text[:word_start] + completion
+            # If it's "print", add a space for filename entry
+            if completion.lower() == "print":
+                new_text += " "
             self.cmd_handler.command_buffer = new_text
             self.cmd_handler.cursor_position = len(new_text)
             
@@ -312,6 +408,57 @@ class MoonrakerTUI:
                     new_text = current_text[:word_start] + common_prefix
                     self.cmd_handler.command_buffer = new_text
                     self.cmd_handler.cursor_position = len(new_text)
+                    
+    def _complete_filename(self, current_text: str, cursor_pos: int):
+        """Handle filename completion for print command"""
+        # Refresh file list cache if older than 30 seconds
+        current_time = time.time()
+        if current_time - self.file_list_cache_time > 30:
+            if self.client:
+                files = self.client.get_files_list()
+                self.file_list_cache = [f.get("path", f.get("filename", "")) for f in files]
+                self.file_list_cache_time = current_time
+        
+        # Get the partial filename after "print "
+        prefix = "print "
+        partial = current_text[len(prefix):cursor_pos]
+        
+        # Find matching files
+        completions = []
+        for filename in self.file_list_cache:
+            if filename.startswith(partial):
+                completions.append(filename)
+        
+        # If no partial filename and no completions yet, show all files (Tab right after "print ")
+        if not partial and not completions:
+            completions = self.file_list_cache[:]
+        
+        # If only one completion, auto-complete
+        if len(completions) == 1:
+            new_text = prefix + completions[0]
+            self.cmd_handler.command_buffer = new_text
+            self.cmd_handler.cursor_position = len(new_text)
+            
+        # If multiple completions, show them
+        elif len(completions) > 1:
+            self.ui.add_terminal_line(f"Files: {', '.join(completions)}", is_command=False)
+            
+            # Find common prefix
+            if completions:
+                common_prefix = completions[0]
+                for comp in completions[1:]:
+                    i = 0
+                    while i < len(common_prefix) and i < len(comp) and common_prefix[i] == comp[i]:
+                        i += 1
+                    common_prefix = common_prefix[:i]
+                
+                # If common prefix is longer than what we have, complete to it
+                if len(common_prefix) > len(partial):
+                    new_text = prefix + common_prefix
+                    self.cmd_handler.command_buffer = new_text
+                    self.cmd_handler.cursor_position = len(new_text)
+        elif not completions and partial:
+            self.ui.add_terminal_line("No matching files found", is_command=False)
             
     def _process_messages(self):
         """Process messages from Moonraker client"""
