@@ -21,6 +21,9 @@ INPUT_HEIGHT = 3
 # History file
 HISTORY_FILE = "~/.mooncrescent_history"
 
+# Print history log file
+PRINT_HISTORY_FILE = "~/.mooncrescent_print_history"
+
 # Terminal filtering
 FILTER_PATTERNS = [
     "// pressure_advance:",      # Orca Slicer adaptive PA spam

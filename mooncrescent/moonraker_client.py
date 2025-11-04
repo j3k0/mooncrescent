@@ -368,6 +368,27 @@ class MoonrakerClient:
         except requests.exceptions.RequestException:
             return []
             
+    def get_file_metadata(self, filename: str) -> Optional[Dict]:
+        """Get metadata for a specific gcode file
+        
+        Uses Moonraker's /server/files/metadata endpoint to get:
+        - estimated_time, filament_total, first_layer_height, layer_height
+        - first_layer_bed_temp, first_layer_extr_temp, slicer info
+        """
+        try:
+            url = f"{self.http_url}/server/files/metadata"
+            params = {"filename": filename}
+            response = requests.get(url, params=params, timeout=5)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "result" in data:
+                    return data["result"]
+            return None
+            
+        except requests.exceptions.RequestException:
+            return None
+            
     def get_message(self) -> Optional[Dict]:
         """Get next message from queue (non-blocking)"""
         if not self.message_queue.empty():

@@ -8,7 +8,7 @@ import time
 import locale
 from typing import Optional
 
-from .config import PRINTER_HOST, PRINTER_PORT, UPDATE_INTERVAL, HISTORY_FILE, FILTER_PATTERNS, FILTER_OK_RESPONSES
+from .config import PRINTER_HOST, PRINTER_PORT, UPDATE_INTERVAL, HISTORY_FILE, FILTER_PATTERNS, FILTER_OK_RESPONSES, PRINT_HISTORY_FILE
 from .moonraker_client import MoonrakerClient
 from .ui_layout import UILayout
 from .command_handler import CommandHandler
@@ -34,6 +34,10 @@ class MoonrakerTUI:
         self.running = True
         self.file_list_cache = []  # Cache for file list (for tab completion)
         self.file_list_cache_time = 0  # Last time we fetched file list
+        
+        # Print history tracking
+        self.last_print_state = None
+        self.current_print_start_time = None
         
         # Setup
         self._setup_curses()
@@ -210,9 +214,10 @@ class MoonrakerTUI:
         # Handle special commands
         cmd_lower = command.strip().lower()
         
-        # List files command
-        if cmd_lower == "ls" or cmd_lower == "list":
-            self._handle_list_files()
+        # List files command (handle both "ls" and "ls -l")
+        if cmd_lower.startswith("ls"):
+            args = command[2:].strip()  # Get everything after "ls"
+            self._handle_list_files(args)
             return
             
         # Reprint last file command
@@ -226,29 +231,89 @@ class MoonrakerTUI:
             self._handle_print_file(filename)
             return
         
+        # Info file command
+        if cmd_lower.startswith("info "):
+            filename = command[5:].strip()
+            self._handle_file_info(filename)
+            return
+        
+        # History command
+        if cmd_lower == "history":
+            self._handle_history()
+            return
+        
+        # Z-offset adjustment
+        if cmd_lower.startswith("z "):
+            args = command[2:].strip()
+            self._handle_z_offset(args)
+            return
+        
         # Regular G-code command
         success = self.client.send_gcode(command)
         if not success:
             self.ui.add_terminal_line("Failed to send command", is_error=True)
             
-    def _handle_list_files(self):
-        """List available gcode files (oldest to newest)"""
+    def _handle_list_files(self, args: str = ""):
+        """List available gcode files (oldest to newest)
+        
+        Args:
+            args: Command arguments (e.g., "-l" for detailed view)
+        """
+        show_details = "-l" in args.lower()
+        
         files = self.client.get_files_list()
         
         if not files:
             self.ui.add_terminal_line("No files found or unable to query", is_command=False)
             return
+        
+        if show_details:
+            # Detailed view with metadata
+            self.ui.add_terminal_line(f"{'SIZE':<10} {'TIME':<8} {'FILAMENT':<10} {'FILENAME'}", is_command=False)
+            self.ui.add_terminal_line("-" * 60, is_command=False)
             
-        self.ui.add_terminal_line(f"Found {len(files)} file(s):", is_command=False)
-        for file_info in files:
-            filename = file_info.get("path", file_info.get("filename", "unknown"))
-            size = file_info.get("size", 0)
-            # Format size in KB or MB
-            if size > 1024 * 1024:
-                size_str = f"{size / (1024 * 1024):.2f} MB"
-            else:
-                size_str = f"{size / 1024:.2f} KB"
-            self.ui.add_terminal_line(f"  {filename} ({size_str})", is_command=False)
+            for file_info in files:
+                filename = file_info.get("path", file_info.get("filename", "unknown"))
+                
+                # Get metadata for each file (this may be slow for many files)
+                metadata = self.client.get_file_metadata(filename)
+                
+                # Size
+                size = file_info.get("size", 0)
+                if size > 1024 * 1024:
+                    size_str = f"{size / (1024 * 1024):.1f}MB"
+                else:
+                    size_str = f"{size / 1024:.0f}KB"
+                
+                # Estimated time
+                time_str = "?"
+                if metadata and "estimated_time" in metadata:
+                    time_sec = metadata["estimated_time"]
+                    hours = int(time_sec // 3600)
+                    minutes = int((time_sec % 3600) // 60)
+                    time_str = f"{hours}h{minutes:02d}m"
+                
+                # Filament
+                filament_str = "?"
+                if metadata and "filament_total" in metadata:
+                    filament_m = metadata["filament_total"] / 1000
+                    filament_str = f"{filament_m:.1f}m"
+                
+                self.ui.add_terminal_line(
+                    f"{size_str:<10} {time_str:<8} {filament_str:<10} {filename}", 
+                    is_command=False
+                )
+        else:
+            # Simple view (existing behavior)
+            self.ui.add_terminal_line(f"Found {len(files)} file(s):", is_command=False)
+            for file_info in files:
+                filename = file_info.get("path", file_info.get("filename", "unknown"))
+                size = file_info.get("size", 0)
+                if size > 1024 * 1024:
+                    size_str = f"{size / (1024 * 1024):.2f} MB"
+                else:
+                    size_str = f"{size / 1024:.2f} KB"
+                self.ui.add_terminal_line(f"  {filename} ({size_str})", is_command=False)
             
     def _handle_reprint(self):
         """Reprint the last file"""
@@ -282,6 +347,144 @@ class MoonrakerTUI:
         else:
             self.ui.add_terminal_line("Failed to start print", is_error=True)
             
+    def _handle_file_info(self, filename: str):
+        """Display detailed info about a file"""
+        if not filename:
+            self.ui.add_terminal_line("Usage: info <filename>", is_error=True)
+            return
+        
+        metadata = self.client.get_file_metadata(filename)
+        
+        if not metadata:
+            self.ui.add_terminal_line(f"Could not get info for: {filename}", is_error=True)
+            return
+        
+        self.ui.add_terminal_line("=" * 50, is_command=False)
+        self.ui.add_terminal_line(f"File: {filename}", is_command=False)
+        self.ui.add_terminal_line("=" * 50, is_command=False)
+        
+        # Size
+        size = metadata.get("size", 0)
+        if size > 1024 * 1024:
+            size_str = f"{size / (1024 * 1024):.2f} MB"
+        else:
+            size_str = f"{size / 1024:.2f} KB"
+        self.ui.add_terminal_line(f"Size: {size_str}", is_command=False)
+        
+        # Estimated time
+        if "estimated_time" in metadata:
+            time_sec = metadata["estimated_time"]
+            hours = int(time_sec // 3600)
+            minutes = int((time_sec % 3600) // 60)
+            self.ui.add_terminal_line(f"Estimated time: {hours}h {minutes}m", is_command=False)
+        
+        # Filament usage
+        if "filament_total" in metadata:
+            filament_mm = metadata["filament_total"]
+            filament_m = filament_mm / 1000
+            # Rough estimate: 1m of 1.75mm filament ≈ 2.4g
+            filament_g = filament_m * 2.4
+            self.ui.add_terminal_line(f"Filament: {filament_m:.1f}m (~{filament_g:.1f}g)", is_command=False)
+        
+        # Layer heights
+        if "first_layer_height" in metadata:
+            self.ui.add_terminal_line(f"First layer: {metadata['first_layer_height']}mm", is_command=False)
+        if "layer_height" in metadata:
+            self.ui.add_terminal_line(f"Layer height: {metadata['layer_height']}mm", is_command=False)
+        
+        # Temperatures
+        if "first_layer_bed_temp" in metadata:
+            self.ui.add_terminal_line(f"Bed temp: {metadata['first_layer_bed_temp']}°C", is_command=False)
+        if "first_layer_extr_temp" in metadata:
+            self.ui.add_terminal_line(f"Hotend temp: {metadata['first_layer_extr_temp']}°C", is_command=False)
+        
+        # Slicer info
+        if "slicer" in metadata:
+            self.ui.add_terminal_line(f"Slicer: {metadata['slicer']}", is_command=False)
+        
+        self.ui.add_terminal_line("=" * 50, is_command=False)
+    
+    def _log_print_completion(self, print_stats: dict, status: str):
+        """Log completed print to history file"""
+        import os
+        from datetime import datetime
+        
+        filename = print_stats.get("filename", "unknown")
+        duration = print_stats.get("print_duration", 0)
+        filament = print_stats.get("filament_used", 0)
+        
+        history_file = os.path.expanduser(PRINT_HISTORY_FILE)
+        
+        try:
+            with open(history_file, 'a') as f:
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+                hours = int(duration // 3600)
+                minutes = int((duration % 3600) // 60)
+                filament_g = filament * 2.4  # Rough estimate
+                f.write(f"{timestamp}|{filename}|{status}|{hours}h {minutes}m|{filament_g:.1f}g\n")
+        except Exception:
+            pass  # Silently fail
+    
+    def _handle_history(self):
+        """Display print history"""
+        import os
+        
+        history_file = os.path.expanduser(PRINT_HISTORY_FILE)
+        
+        if not os.path.exists(history_file):
+            self.ui.add_terminal_line("No print history found", is_command=False)
+            return
+        
+        try:
+            with open(history_file, 'r') as f:
+                lines = f.readlines()
+            
+            # Show last 20 prints
+            lines = lines[-20:]
+            
+            self.ui.add_terminal_line("=" * 70, is_command=False)
+            self.ui.add_terminal_line("Print History (last 20)", is_command=False)
+            self.ui.add_terminal_line("=" * 70, is_command=False)
+            
+            for line in reversed(lines):  # Most recent first
+                parts = line.strip().split('|')
+                if len(parts) >= 5:
+                    timestamp, filename, status, duration, filament = parts
+                    status_marker = "✓" if status == "completed" else "✗"
+                    self.ui.add_terminal_line(
+                        f"[{timestamp}] {status_marker} {filename} - {duration} - {filament}",
+                        is_command=False
+                    )
+            
+            self.ui.add_terminal_line("=" * 70, is_command=False)
+        except Exception as e:
+            self.ui.add_terminal_line(f"Error reading history: {e}", is_error=True)
+    
+    def _handle_z_offset(self, args: str):
+        """Adjust Z offset for baby stepping
+        
+        Usage:
+            z +0.05    - Raise nozzle by 0.05mm
+            z -0.02    - Lower nozzle by 0.02mm
+            z save     - Save current offset to config
+        """
+        if args == "save":
+            # Save current Z offset to Klipper config
+            self.client.send_gcode("SAVE_CONFIG")
+            self.ui.add_terminal_line("Z offset saved to config (printer will restart)", is_command=False)
+            return
+        
+        try:
+            # Parse offset value (e.g., "+0.05" or "-0.02")
+            offset = float(args)
+            
+            # Send SET_GCODE_OFFSET command with Z_ADJUST
+            # MOVE=1 tells Klipper to move the toolhead immediately
+            self.client.send_gcode(f"SET_GCODE_OFFSET Z_ADJUST={offset} MOVE=1")
+            self.ui.add_terminal_line(f"Z offset adjusted by {offset:+.3f}mm", is_command=False)
+        except ValueError:
+            self.ui.add_terminal_line("Usage: z +0.05 | z -0.02 | z save", is_error=True)
+            
     def _show_help(self):
         """Display help with available macros and common commands"""
         self.ui.add_terminal_line("=" * 50, is_command=False)
@@ -292,8 +495,11 @@ class MoonrakerTUI:
         self.ui.add_terminal_line("", is_command=False)
         self.ui.add_terminal_line("File Management:", is_command=False)
         self.ui.add_terminal_line("  ls                 - List available gcode files", is_command=False)
+        self.ui.add_terminal_line("  ls -l              - List files with details (time, filament)", is_command=False)
         self.ui.add_terminal_line("  print <filename>   - Start printing a file", is_command=False)
         self.ui.add_terminal_line("  reprint            - Reprint the last file", is_command=False)
+        self.ui.add_terminal_line("  info <filename>    - Show detailed file information", is_command=False)
+        self.ui.add_terminal_line("  history            - Show print history", is_command=False)
         
         # Common G-code commands
         self.ui.add_terminal_line("", is_command=False)
@@ -309,6 +515,13 @@ class MoonrakerTUI:
         self.ui.add_terminal_line("  M114       - Get current position", is_command=False)
         self.ui.add_terminal_line("  M115       - Get firmware info", is_command=False)
         self.ui.add_terminal_line("  FIRMWARE_RESTART - Restart firmware", is_command=False)
+        
+        # Z-offset control
+        self.ui.add_terminal_line("", is_command=False)
+        self.ui.add_terminal_line("Z-Offset Control:", is_command=False)
+        self.ui.add_terminal_line("  z +0.05            - Raise nozzle by 0.05mm", is_command=False)
+        self.ui.add_terminal_line("  z -0.02            - Lower nozzle by 0.02mm", is_command=False)
+        self.ui.add_terminal_line("  z save             - Save Z offset to config", is_command=False)
         
         # Fetch and display available macros
         if self.client:
@@ -352,8 +565,8 @@ class MoonrakerTUI:
         # Build list of possible completions
         completions = []
         
-        # Special commands (ls, print, reprint)
-        special_commands = ["ls", "print", "reprint"]
+        # Special commands (ls, print, reprint, info, history, z)
+        special_commands = ["ls", "ls -l", "print", "reprint", "info", "history", "z"]
         for cmd in special_commands:
             if cmd.upper().startswith(word):
                 completions.append(cmd)
@@ -476,6 +689,24 @@ class MoonrakerTUI:
                 # Update printer state
                 data = message.get("data", {})
                 self.ui.update_status(data)
+                
+                # Track print state changes for history
+                print_stats = data.get("print_stats", {})
+                current_state = print_stats.get("state", "")
+                
+                if current_state == "printing" and self.last_print_state != "printing":
+                    # Print started
+                    self.current_print_start_time = time.time()
+                    
+                elif current_state == "complete" and self.last_print_state == "printing":
+                    # Print completed - log it
+                    self._log_print_completion(print_stats, "completed")
+                    
+                elif current_state == "cancelled" and self.last_print_state == "printing":
+                    # Print cancelled - log it
+                    self._log_print_completion(print_stats, "cancelled")
+                
+                self.last_print_state = current_state
                 
             elif msg_type == "gcode_response":
                 # Display G-code response

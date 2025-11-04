@@ -146,6 +146,9 @@ COMMON_GCODES = {
     "ls": "List available gcode files",
     "print": "Start printing a file (usage: print <filename>)",
     "reprint": "Reprint the last file",
+    "info": "Show detailed file information",
+    "history": "Show print history",
+    "z": "Adjust Z offset (z +0.05, z -0.02, z save)",
     
     # Homing
     "G28": "Home all axes",
