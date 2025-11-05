@@ -34,6 +34,7 @@ class MoonrakerTUI:
         self.running = True
         self.file_list_cache = []  # Cache for file list (for tab completion)
         self.file_list_cache_time = 0  # Last time we fetched file list
+        self.file_id_map = {}  # Map file IDs (#0, #1, etc.) to filenames (#0 = newest)
         
         # Print history tracking
         self.last_print_state = None
@@ -253,13 +254,33 @@ class MoonrakerTUI:
         if not success:
             self.ui.add_terminal_line("Failed to send command", is_error=True)
             
+    def _update_file_id_map(self, files: list):
+        """Update file ID mapping (#0 = newest file, #1 = second newest, etc.)"""
+        self.file_id_map = {}
+        # Files are sorted oldest to newest, so reverse for ID assignment
+        for i, file_info in enumerate(reversed(files)):
+            filename = file_info.get("path", file_info.get("filename", ""))
+            self.file_id_map[f"#{i}"] = filename
+    
+    def _resolve_filename(self, filename_or_id: str) -> str:
+        """Resolve #N syntax to actual filename, or return filename as-is"""
+        if filename_or_id.startswith("#"):
+            return self.file_id_map.get(filename_or_id, filename_or_id)
+        return filename_or_id
+    
     def _handle_list_files(self, args: str = ""):
         """List available gcode files (oldest to newest)
         
         Args:
-            args: Command arguments (e.g., "-l" for detailed view)
+            args: Command arguments (e.g., "-l" for detailed view, "*pattern*" for filtering)
         """
+        import fnmatch
+        
+        # Parse arguments: extract -l flag and glob pattern
         show_details = "-l" in args.lower()
+        
+        # Remove -l flag to get the pattern
+        pattern = args.replace("-l", "").replace("-L", "").strip()
         
         files = self.client.get_files_list()
         
@@ -267,13 +288,32 @@ class MoonrakerTUI:
             self.ui.add_terminal_line("No files found or unable to query", is_command=False)
             return
         
+        # Apply glob filter if pattern provided
+        if pattern:
+            filtered_files = []
+            for file_info in files:
+                filename = file_info.get("path", file_info.get("filename", ""))
+                if fnmatch.fnmatch(filename.lower(), pattern.lower()):
+                    filtered_files.append(file_info)
+            files = filtered_files
+            
+            if not files:
+                self.ui.add_terminal_line(f"No files matching '{pattern}'", is_command=False)
+                return
+        
+        # Update file ID mapping with current file list
+        self._update_file_id_map(files)
+        
         if show_details:
             # Detailed view with metadata
-            self.ui.add_terminal_line(f"{'SIZE':<10} {'TIME':<8} {'FILAMENT':<10} {'FILENAME'}", is_command=False)
-            self.ui.add_terminal_line("-" * 60, is_command=False)
+            self.ui.add_terminal_line(f"{'ID':<5} {'SIZE':<10} {'TIME':<8} {'FILAMENT':<10} {'FILENAME'}", is_command=False)
+            self.ui.add_terminal_line("-" * 70, is_command=False)
             
-            for file_info in files:
+            for i, file_info in enumerate(files):
                 filename = file_info.get("path", file_info.get("filename", "unknown"))
+                
+                # Get file ID (reverse index since #0 = newest)
+                file_id = f"#{len(files) - 1 - i}"
                 
                 # Get metadata for each file (this may be slow for many files)
                 metadata = self.client.get_file_metadata(filename)
@@ -300,20 +340,24 @@ class MoonrakerTUI:
                     filament_str = f"{filament_m:.1f}m"
                 
                 self.ui.add_terminal_line(
-                    f"{size_str:<10} {time_str:<8} {filament_str:<10} {filename}", 
+                    f"{file_id:<5} {size_str:<10} {time_str:<8} {filament_str:<10} {filename}", 
                     is_command=False
                 )
         else:
-            # Simple view (existing behavior)
+            # Simple view with file IDs
             self.ui.add_terminal_line(f"Found {len(files)} file(s):", is_command=False)
-            for file_info in files:
+            for i, file_info in enumerate(files):
                 filename = file_info.get("path", file_info.get("filename", "unknown"))
                 size = file_info.get("size", 0)
+                
+                # Get file ID (reverse index since #0 = newest)
+                file_id = f"#{len(files) - 1 - i}"
+                
                 if size > 1024 * 1024:
                     size_str = f"{size / (1024 * 1024):.2f} MB"
                 else:
                     size_str = f"{size / 1024:.2f} KB"
-                self.ui.add_terminal_line(f"  {filename} ({size_str})", is_command=False)
+                self.ui.add_terminal_line(f"  {file_id:<5} {filename} ({size_str})", is_command=False)
             
     def _handle_reprint(self):
         """Reprint the last file"""
@@ -336,7 +380,15 @@ class MoonrakerTUI:
     def _handle_print_file(self, filename: str):
         """Start printing a specific file"""
         if not filename:
-            self.ui.add_terminal_line("Usage: print <filename>", is_error=True)
+            self.ui.add_terminal_line("Usage: print <filename> or print #N", is_error=True)
+            return
+        
+        # Resolve #N syntax to actual filename
+        original_input = filename
+        filename = self._resolve_filename(filename)
+        
+        if original_input.startswith("#") and filename == original_input:
+            self.ui.add_terminal_line(f"Unknown file ID: {original_input}. Use 'ls' to see available files.", is_error=True)
             return
             
         self.ui.add_terminal_line(f"Starting print: {filename}", is_command=False)
@@ -350,7 +402,15 @@ class MoonrakerTUI:
     def _handle_file_info(self, filename: str):
         """Display detailed info about a file"""
         if not filename:
-            self.ui.add_terminal_line("Usage: info <filename>", is_error=True)
+            self.ui.add_terminal_line("Usage: info <filename> or info #N", is_error=True)
+            return
+        
+        # Resolve #N syntax to actual filename
+        original_input = filename
+        filename = self._resolve_filename(filename)
+        
+        if original_input.startswith("#") and filename == original_input:
+            self.ui.add_terminal_line(f"Unknown file ID: {original_input}. Use 'ls' to see available files.", is_error=True)
             return
         
         metadata = self.client.get_file_metadata(filename)
@@ -494,12 +554,14 @@ class MoonrakerTUI:
         # File management commands
         self.ui.add_terminal_line("", is_command=False)
         self.ui.add_terminal_line("File Management:", is_command=False)
-        self.ui.add_terminal_line("  ls                 - List available gcode files", is_command=False)
-        self.ui.add_terminal_line("  ls -l              - List files with details (time, filament)", is_command=False)
-        self.ui.add_terminal_line("  print <filename>   - Start printing a file", is_command=False)
+        self.ui.add_terminal_line("  ls [pattern]       - List files (e.g., ls *TPU*)", is_command=False)
+        self.ui.add_terminal_line("  ls -l [pattern]    - List with details (#ID, time, filament)", is_command=False)
+        self.ui.add_terminal_line("  print <file>|#N    - Start printing (e.g., print #0)", is_command=False)
         self.ui.add_terminal_line("  reprint            - Reprint the last file", is_command=False)
-        self.ui.add_terminal_line("  info <filename>    - Show detailed file information", is_command=False)
+        self.ui.add_terminal_line("  info <file>|#N     - Show detailed info (e.g., info #0)", is_command=False)
         self.ui.add_terminal_line("  history            - Show print history", is_command=False)
+        self.ui.add_terminal_line("", is_command=False)
+        self.ui.add_terminal_line("  Note: #0 = newest file, #1 = second newest, etc.", is_command=False)
         
         # Common G-code commands
         self.ui.add_terminal_line("", is_command=False)
@@ -550,9 +612,12 @@ class MoonrakerTUI:
         if not current_text:
             return
         
-        # Check if we're completing a filename after "print "
+        # Check if we're completing a filename after "print " or "info "
         if current_text.lower().startswith("print "):
-            self._complete_filename(current_text, cursor_pos)
+            self._complete_filename(current_text, cursor_pos, "print ")
+            return
+        elif current_text.lower().startswith("info "):
+            self._complete_filename(current_text, cursor_pos, "info ")
             return
             
         # Get word at cursor
@@ -622,8 +687,8 @@ class MoonrakerTUI:
                     self.cmd_handler.command_buffer = new_text
                     self.cmd_handler.cursor_position = len(new_text)
                     
-    def _complete_filename(self, current_text: str, cursor_pos: int):
-        """Handle filename completion for print command"""
+    def _complete_filename(self, current_text: str, cursor_pos: int, prefix: str = "print "):
+        """Handle filename completion for print/info commands"""
         # Refresh file list cache if older than 30 seconds
         current_time = time.time()
         if current_time - self.file_list_cache_time > 30:
@@ -631,9 +696,10 @@ class MoonrakerTUI:
                 files = self.client.get_files_list()
                 self.file_list_cache = [f.get("path", f.get("filename", "")) for f in files]
                 self.file_list_cache_time = current_time
+                # Also update file ID mapping
+                self._update_file_id_map(files)
         
-        # Get the partial filename after "print "
-        prefix = "print "
+        # Get the partial filename after prefix (e.g., "print " or "info ")
         partial = current_text[len(prefix):cursor_pos]
         
         # Find matching files
