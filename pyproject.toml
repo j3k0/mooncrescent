@@ -9,7 +9,7 @@ description = "Terminal UI for Moonraker/Klipper 3D Printers"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
-    {name = "Mooncrescent Contributors"}
+    {name = "Jean-Christophe Hoelt"}
 ]
 keywords = ["3d-printing", "klipper", "moonraker", "tui", "terminal", "curses"]
 classifiers = [
