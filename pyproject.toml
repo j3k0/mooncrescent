@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mooncrescent"
-version = "0.1.0"
+version = "0.2.0"
 description = "Terminal UI for Moonraker/Klipper 3D Printers"
 readme = "README.md"
 license = "MIT"
@@ -34,9 +34,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/Moonraker-CLI"
-Repository = "https://github.com/yourusername/Moonraker-CLI"
-Issues = "https://github.com/yourusername/Moonraker-CLI/issues"
+Homepage = "https://github.com/j3k0/mooncrescent"
+Repository = "https://github.com/j3k0/mooncrescent.git"
+Issues = "https://github.com/j3k0/mooncrescent/issues"
 
 [project.scripts]
 mooncrescent = "mooncrescent.mooncrescent:main"

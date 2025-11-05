@@ -4,10 +4,63 @@ All notable changes to Mooncrescent will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **File Management System**
+  - `ls` command to list available gcode files (sorted oldest to newest)
+  - `ls -l` for detailed listing with estimated time and filament usage
+  - `print <filename>` to start printing a specific file
+  - `reprint` to restart the last printed file
+  - Tab completion for filenames in `print` and `info` commands
+  
+- **File Metadata Viewer**
+  - `info <filename>` command to display detailed file information
+  - Shows file size, estimated print time, filament usage (meters and grams)
+  - Displays layer heights, temperatures, and slicer information
+  - Uses Moonraker's metadata API for accurate estimates
+
+- **File ID System**
+  - Quick file references with #N syntax (#0 = newest, #1 = second newest, etc.)
+  - File IDs displayed in all `ls` outputs
+  - Use IDs in commands: `print #0`, `info #1`
+  - Automatic ID mapping updated when files are listed
+
+- **Glob Pattern Filtering**
+  - Filter files with shell-style wildcards: `ls *TPU*`, `ls *calibration*`
+  - Works with `-l` flag in any order: `ls -l *pattern*` or `ls *pattern* -l`
+  - Case-insensitive matching using fnmatch
+
+- **Print History Tracking**
+  - `history` command to view last 20 completed/cancelled prints
+  - Automatic logging to `~/.mooncrescent_print_history`
+  - Tracks filename, duration, filament used, and completion status
+  - Visual status markers (✓ completed, ✗ cancelled)
+  - State detection for print start, completion, and cancellation
+
+- **Z-Offset Baby Stepping**
+  - `z +0.05` to raise nozzle by 0.05mm
+  - `z -0.02` to lower nozzle by 0.02mm
+  - `z save` to save current offset to Klipper config
+  - Uses `SET_GCODE_OFFSET Z_ADJUST` with immediate movement
+  - Perfect for first-layer tuning during prints
+
+- **Additional Commands**
+  - `FIRMWARE_RESTART` added to known commands for post-emergency-stop recovery
+
 ### Changed
 - Project renamed from "Moonraker TUI" to "Mooncrescent"
 - History file renamed from `~/.moonraker_tui_history` to `~/.mooncrescent_history`
 - Main executable renamed from `main.py` to `mooncrescent.py`
+- Enhanced help menu with organized sections and examples
+- Tab completion now includes special commands (ls, info, history, z)
+- File list cache shared between commands for better performance
+
+### Technical
+- Added `get_file_metadata()` method to MoonrakerClient
+- Added `get_files_list()` method with sorting by modification time
+- File ID mapping system with automatic updates
+- Glob pattern support using fnmatch module
+- State tracking for print lifecycle events
+- Configuration option for print history file location
 
 ## [0.2.0] - Mooncrescent Release
 
