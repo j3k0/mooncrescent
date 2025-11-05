@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=61.0,<75.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,7 +7,6 @@ name = "mooncrescent"
 version = "0.2.0"
 description = "Terminal UI for Moonraker/Klipper 3D Printers"
 readme = "README.md"
-license = {text = "MIT"}
 authors = [
     {name = "Jean-Christophe Hoelt"}
 ]
