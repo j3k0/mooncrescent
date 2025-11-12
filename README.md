@@ -73,10 +73,7 @@ mooncrescent --host mainsailos.local
 - `Enter` - Send G-code command
 - `Tab` - Auto-complete command
 - `↑/↓` - Navigate command history (persisted across sessions)
-- `←/→` - Move cursor in command line
-- `Home/End` - Jump to start/end of command
-- `Backspace` - Delete character before cursor
-- `Delete` - Delete character at cursor
+- The usual to move the cursor and delete stuff: `←/→`, `Home/End`, `Backspace`, `Delete`...
 
 ### Terminal Scrolling
 - `Page Up` - Scroll terminal output up
